@@ -1,14 +1,18 @@
 var q = require('q');
 var rp = require('request-promise');
+var fs = require('fs');
+var json2csv = require('json2csv');
 var config = require('./config/config.json');
 
 getTables()
 .then(getColumns)
-.then(function (arr) {
-console.log("Made it here");
-console.log(arr);
+.then(createCSV)
+.then(function(){
+  console.log('done');
+})
+.then(null, function (err) {
+	console.error(err);
 });
-//.then(createCSV);
 
 /*
  * @returns A promise containing an array of table objects
@@ -80,4 +84,17 @@ function flattenTableColumns (arr) {
 	return [].concat.apply([], arr);
 }
 
-function createCSV () {}
+function createCSV (data) {
+	console.log("creating csv");
+	console.log(data);
+	var fields = ['table', 'column'];
+	json2csv({ data: data, fields: fields }, function(err, csv) {
+		if (err) return console.error(err);
+
+	    	fs.writeFile('rjtables.csv', csv, function(err) {
+			if (err) throw err;
+			console.log('file saved');
+		});
+
+	});
+}
