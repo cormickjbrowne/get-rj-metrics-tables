@@ -3,14 +3,14 @@ var rp = require('request-promise');
 var fs = require('fs');
 var json2csv = require('json2csv');
 var config = require('./config/config.json');
+var path = require('path');
+var outputFilePath = path.join(__dirname, '/output/rjtables.csv');
 
 getTables()
 .then(getColumns)
 .then(createCSV)
-.then(function(){
-  console.log('done');
-})
 .then(null, function (err) {
+	console.log(outputFilePath);
 	console.error(err);
 });
 
@@ -21,6 +21,7 @@ function getTables () {
 	var deferred = q.defer();
 	deferred.resolve(requestTables()
 			.then(function (response) {
+				console.log('Table data received!');
 				return response.tables;
 			}));
 	return deferred.promise;
@@ -30,6 +31,7 @@ function getTables () {
  * @returns A promise containing json of table objects
  */
 function requestTables () {
+	console.log('Requesting table data...');
 	var options = {
 		method: 'GET',
 		headers: { 'x-rjm-api-key': config['x-rjm-api-key'] },
@@ -52,9 +54,11 @@ function getColumns (tables) {
  * @returns A promise containing an array of arrays of objects containing table and column names
  */
 function getTableColumns (table) {
+	console.log('Requesting column data for ' + table.name + '...');
 	var deferred = q.defer()
 	deferred.resolve(requestColumns(table.id)
 			.then(function (response) {
+				console.log('Data received for table: ' + table.name);
 				return response.columns
 					.map(function(column) {
 						return {table: table.name, column: column.name};
@@ -64,7 +68,7 @@ function getTableColumns (table) {
 }
 
 /*
- * @returns A promise containing an array of column objects
+/bin/bash: q: command not found
  */
 function requestColumns (tableId) {
 	if (!tableId) return false;
@@ -77,7 +81,6 @@ function requestColumns (tableId) {
 	options.url = 'https://api.rjmetrics.com/0.1/client/' + config['rj-client-id'] + '/table/' + tableId;
 	
 	return rp(options);
-	//rp(options).then(function (res) { console.log(res.columns); });
 }
 
 function flattenTableColumns (arr) {
@@ -85,15 +88,14 @@ function flattenTableColumns (arr) {
 }
 
 function createCSV (data) {
-	console.log("creating csv");
-	console.log(data);
+	console.log("Saving csv file...");
 	var fields = ['table', 'column'];
 	json2csv({ data: data, fields: fields }, function(err, csv) {
 		if (err) return console.error(err);
 
-	    	fs.writeFile('rjtables.csv', csv, function(err) {
+	    	fs.writeFile(outputFilePath, csv, function(err) {
 			if (err) throw err;
-			console.log('file saved');
+			console.log('File saved!');
 		});
 
 	});
